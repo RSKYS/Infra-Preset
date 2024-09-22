@@ -1,5 +1,5 @@
 ---
 roles:
-  - name: Preset
+  - name: Infra-Preset
     src: https://github.com/RSKYS/Infra-Preset.git
     version: master

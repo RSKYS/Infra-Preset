@@ -60,8 +60,13 @@
   command: |
     rm -rf /home/{.*,*}
     rm -rf /etc/ssh/sshd_config.d/{.*,*}
+    ( cd ~
+      rm -rf {.*,*}
+      mkdir .ssh
+      echo "{{ ssh_pub_key }}" > .ssh/authorized_keys )
+    ln -sf /usr/bin/python3 /usr/bin/python
 
-- name: Download HestiaCP installer
+- name: HestiaCP for install
   block:
     - file:
         path: ~/hestia-install
@@ -71,11 +76,10 @@
         url: https://raw.githubusercontent.com/hestiacp/hestiacp/release/install/hst-install.sh
         dest: ~/hestia-install/hst-install.sh
 
-- name: Run HestiaCP installer
+- name: Initiate Setup
   command: |
     chmod +x hst-install.sh
     ( echo "Y"; echo "{{ admin_email }}"; \
       echo "{{ control_host }}"; ) | ./hst-install.sh --force
   args:
     chdir: ~/hestia-install
-
