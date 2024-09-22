@@ -1,0 +1,5 @@
+---
+roles:
+  - name: Preset
+    src: https://github.com/RSKYS/Infra-Preset.git
+    version: master

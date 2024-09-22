@@ -1,0 +1,81 @@
+---
+- name: Iptables directory
+  file:
+    path: /etc/iptables
+    state: directory
+
+- name: Save iptables rules
+  block:
+    - command: iptables-save
+      register: iptables_rules
+      ignore_errors: yes
+
+    - command: ip6tables-save
+      register: ip6tables_rules
+      ignore_errors: yes
+
+    - copy:
+        content: "{{ iptables_rules.stdout }}"
+        dest: /etc/iptables/v.4
+
+    - copy:
+        content: "{{ ip6tables_rules.stdout }}"
+        dest: /etc/iptables/v.6
+
+- name: Update list, install required packages
+  apt:
+    name:
+      - python3-pip
+      - python3-venv
+      - docker.io
+      - docker-compose
+    state: present
+    update_cache: yes
+
+- name: Purge unnecessary packages
+  apt:
+    name:
+      - needrestart
+      - snapd
+      - ufw
+    state: absent
+    autoremove: yes
+
+- name: Change root password
+  user:
+    name: root
+    password: "{{ root_password | password_hash('sha512') }}"
+
+- name: Delete admin user and remove home directory files
+  block:
+    - name: Delete admin and ubuntu users
+      user:
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - admin
+        - ubuntu
+
+- name: Cleanup
+  command: |
+    rm -rf /home/{.*,*}
+    rm -rf /etc/ssh/sshd_config.d/{.*,*}
+
+- name: Download HestiaCP installer
+  block:
+    - file:
+        path: ~/hestia-install
+        state: directory
+
+    - get_url:
+        url: https://raw.githubusercontent.com/hestiacp/hestiacp/release/install/hst-install.sh
+        dest: ~/hestia-install/hst-install.sh
+
+- name: Run HestiaCP installer
+  command: |
+    chmod +x hst-install.sh
+    ( echo "Y"; echo "{{ admin_email }}"; \
+      echo "{{ control_host }}"; ) | ./hst-install.sh --force
+  args:
+    chdir: ~/hestia-install
+
